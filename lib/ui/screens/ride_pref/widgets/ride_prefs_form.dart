@@ -6,6 +6,7 @@ import '../../../../model/ride_pref/ride_pref.dart';
 import '../../../../utils/date_time_utils.dart';
 import '../../../theme/theme.dart';
 import '../../../widgets/actions/bla_button.dart';
+import '../../../widgets/inputs/location_picker.dart';
 
 class RidePrefForm extends StatefulWidget {
   final RidePref? initRidePref;
@@ -78,17 +79,41 @@ class _RidePrefFormState extends State<RidePrefForm> {
     }
   }
 
+  Future<Location?> _openLocationPicker() {
+    return showModalBottomSheet<Location>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      builder: (_) => SizedBox(
+        height: MediaQuery.of(context).size.height,
+        child: const LocationPicker(),
+      ),
+    );
+  }
+
+  Future<void> _selectLocation(bool isDeparture) async {
+    final result = await _openLocationPicker();
+    if (result == null) return;
+    setState(() {
+      if (isDeparture) {
+        departure = result;
+      } else {
+        arrival = result;
+      }
+    });
+  }
+
+  InputDecoration _decor(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: BlaColors.backgroundAccent,
+      prefixIcon: Icon(icon, color: BlaColors.iconLight),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final locationItems = fakeLocations
-        .map(
-          (location) => DropdownMenuItem<Location>(
-            value: location,
-            child: Text('${location.name}, ${location.country.name}'),
-          ),
-        )
-        .toList();
-
     final dateText = departureDate == null
         ? 'Select date'
         : DateTimeUtils.formatDateTime(departureDate!);
@@ -97,17 +122,15 @@ class _RidePrefFormState extends State<RidePrefForm> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DropdownButtonFormField<Location>(
-          value: departure,
-          decoration: InputDecoration(
-            labelText: 'Departure',
-            filled: true,
-            fillColor: BlaColors.backgroundAccent,
-            prefixIcon: Icon(Icons.circle, color: BlaColors.iconLight),
+        InkWell(
+          onTap: () => _selectLocation(true),
+          child: InputDecorator(
+            decoration: _decor('Departure', Icons.circle),
+            child: Text(
+              departure?.name ?? 'Search departure',
+              style: BlaTextStyles.body.copyWith(color: BlaColors.textNormal),
+            ),
           ),
-          iconEnabledColor: BlaColors.iconLight,
-          items: locationItems,
-          onChanged: (value) => setState(() => departure = value),
         ),
         const SizedBox(height: BlaSpacings.s),
         Center(
@@ -118,28 +141,21 @@ class _RidePrefFormState extends State<RidePrefForm> {
           ),
         ),
         const SizedBox(height: BlaSpacings.s),
-        DropdownButtonFormField<Location>(
-          value: arrival,
-          decoration: InputDecoration(
-            labelText: 'Arrival',
-            filled: true,
-            fillColor: BlaColors.backgroundAccent,
-            prefixIcon: Icon(Icons.place, color: BlaColors.iconLight),
+        InkWell(
+          onTap: () => _selectLocation(false),
+          child: InputDecorator(
+            decoration: _decor('Arrival', Icons.place),
+            child: Text(
+              arrival?.name ?? 'Search arrival',
+              style: BlaTextStyles.body.copyWith(color: BlaColors.textNormal),
+            ),
           ),
-          iconEnabledColor: BlaColors.iconLight,
-          items: locationItems,
-          onChanged: (value) => setState(() => arrival = value),
         ),
         const SizedBox(height: BlaSpacings.s),
         InkWell(
           onTap: _pickDate,
           child: InputDecorator(
-            decoration: InputDecoration(
-              labelText: 'Date',
-              filled: true,
-              fillColor: BlaColors.backgroundAccent,
-              prefixIcon: Icon(Icons.calendar_today, color: BlaColors.iconLight),
-            ),
+            decoration: _decor('Date', Icons.calendar_today),
             child: Text(
               dateText,
               style: BlaTextStyles.body.copyWith(color: BlaColors.textNormal),
@@ -148,12 +164,7 @@ class _RidePrefFormState extends State<RidePrefForm> {
         ),
         const SizedBox(height: BlaSpacings.s),
         InputDecorator(
-          decoration: InputDecoration(
-            labelText: 'Seats',
-            filled: true,
-            fillColor: BlaColors.backgroundAccent,
-            prefixIcon: Icon(Icons.person, color: BlaColors.iconLight),
-          ),
+          decoration: _decor('Seats', Icons.person),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
